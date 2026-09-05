@@ -36,7 +36,7 @@ from .sunrise import active_window, next_start, state_at
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SWITCH]
+PLATFORMS = [Platform.BUTTON, Platform.SWITCH]
 COLOR_MODES = {"hs", "rgb", "rgbw", "rgbww", "xy"}
 TRANSITION_SUPPORT = 32  # LightEntityFeature.TRANSITION
 

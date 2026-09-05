@@ -173,3 +173,23 @@ async def test_unavailable_light_is_skipped(hass, freezer):
     await setup_alarm(hass, lights=["light.gone"])
     assert not calls
     assert hass.states.get("switch.bedroom_sunrise").attributes["phase"] == "sunrise"
+
+
+async def test_test_button_starts_sunrise(hass: HomeAssistant, bulb, freezer):
+    """Pressing the test button runs a one minute sunrise."""
+    freezer.move_to("2024-01-01 03:00:00+00:00")  # a Monday, far from wake time
+    await setup_alarm(hass)
+    assert not bulb
+
+    await hass.services.async_call(
+        "button",
+        "press",
+        {"entity_id": "button.bedroom_sunrise_test_sunrise_1_min"},
+        blocking=True,
+    )
+    assert bulb, "button press should have driven the light"
+
+    freezer.tick(timedelta(minutes=2))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert bulb[-1].data["brightness_pct"] == 100

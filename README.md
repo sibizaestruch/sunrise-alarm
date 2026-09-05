@@ -22,6 +22,14 @@ The integration creates one switch per alarm, e.g. `switch.bedroom_sunrise`:
 **on = armed**. Attributes expose `phase`, `progress`, `remaining`,
 `next_sunrise_start` and `next_wake`.
 
+Three buttons run a sunrise by hand, no automation needed:
+
+| Button | Effect |
+| --- | --- |
+| `button.<name>_test_sunrise_1_min` | One minute sunrise — for testing the bulb |
+| `button.<name>_run_sunrise_now` | Sunrise at the configured duration |
+| `button.<name>_stop_sunrise` | Stops it, lights off, alarm stays armed |
+
 Services (target the switch):
 
 | Service | Fields | Effect |

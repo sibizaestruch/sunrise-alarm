@@ -30,3 +30,4 @@ ATTR_MINUTES = "minutes"
 UPDATE_INTERVAL = 5  # seconds between light updates during a sunrise
 SNOOZE_MINUTES = 9
 SNOOZE_RAMP = 5  # minutes of sunrise after a snooze
+TEST_DURATION = 1  # minutes for the test button
