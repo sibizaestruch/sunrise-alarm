@@ -1,0 +1,11 @@
+{
+  "domain": "sunrise_alarm",
+  "name": "Sunrise Alarm",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/salva/ha-sunrise-alarm",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/salva/ha-sunrise-alarm/issues",
+  "version": "0.1.0"
+}

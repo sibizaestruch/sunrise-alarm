@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sunrise Alarm",
+        "data": {
+          "name": "Name",
+          "lights": "Lights",
+          "wake_time": "Wake-up time",
+          "days": "Days",
+          "duration": "Sunrise duration",
+          "max_brightness": "Maximum brightness"
+        },
+        "description": "Set the lights, wake-up time and sunrise duration."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sunrise Alarm",
+        "data": {
+          "lights": "Lights",
+          "wake_time": "Wake-up time",
+          "days": "Days",
+          "duration": "Sunrise duration",
+          "max_brightness": "Maximum brightness"
+        },
+        "description": "Change the lights, wake-up time and sunrise duration."
+      }
+    }
+  },
+  "services": {
+    "start": {
+      "name": "Start sunrise",
+      "description": "Runs a sunrise now.",
+      "fields": {
+        "duration": {
+          "name": "Duration",
+          "description": "Length of the sunrise in minutes. Defaults to the configured duration."
+        }
+      }
+    },
+    "stop": {
+      "name": "Stop sunrise",
+      "description": "Stops the running sunrise and turns the lights off."
+    },
+    "snooze": {
+      "name": "Snooze",
+      "description": "Turns the lights off and runs a short sunrise again later.",
+      "fields": {
+        "minutes": {
+          "name": "Minutes",
+          "description": "How long to snooze."
+        }
+      }
+    }
+  }
+}
