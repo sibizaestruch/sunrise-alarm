@@ -7,6 +7,7 @@ import pytest
 from custom_components.sunrise_alarm.sunrise import (
     SUNRISE,
     active_window,
+    human_delta,
     next_start,
     state_at,
 )
@@ -95,3 +96,10 @@ def test_next_start_single_day():
     only_wednesday = {2}
     start = next_start(MON, time(7, 30), only_wednesday, timedelta(minutes=30))
     assert start == MON.replace(day=9, hour=7)
+
+
+def test_human_delta():
+    """Durations render short, and never negative."""
+    assert human_delta(timedelta(minutes=9)) == "9m"
+    assert human_delta(timedelta(hours=2, minutes=5)) == "2h 05m"
+    assert human_delta(timedelta(seconds=-30)) == "0m"

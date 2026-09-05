@@ -15,6 +15,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
@@ -32,7 +33,7 @@ from .const import (
     UPDATE_INTERVAL,
     WEEKDAYS,
 )
-from .sunrise import active_window, next_start, state_at
+from .sunrise import active_window, human_delta, next_start, state_at
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,6 +112,16 @@ class SunriseAlarm:
         return timedelta(minutes=float(self._cfg[CONF_DURATION]))
 
     @property
+    def device_info(self) -> DeviceInfo:
+        """Device grouping every entity of this alarm."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.entry.entry_id)},
+            name=self.name,
+            manufacturer="Sunrise Alarm",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+    @property
     def max_brightness(self) -> float:
         """Brightness reached at wake time."""
         return float(self._cfg.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS))
@@ -156,6 +167,7 @@ class SunriseAlarm:
             "max_brightness": self.max_brightness,
             "next_sunrise_start": start,
             "next_wake": start + self.duration if start else None,
+            "starts_in": human_delta(start - now) if start else None,
             "progress": None,
             "remaining": None,
         }

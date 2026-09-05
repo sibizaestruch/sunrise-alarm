@@ -48,6 +48,8 @@ async def async_setup_entry(
 class SunriseAlarmButton(ButtonEntity):
     """One press, one alarm method."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         alarm: SunriseAlarm,
@@ -58,7 +60,8 @@ class SunriseAlarmButton(ButtonEntity):
     ) -> None:
         """Initialise the entity."""
         self._action = action
-        self._attr_name = f"{alarm.name} {label}"
+        self._attr_name = label
+        self._attr_device_info = alarm.device_info
         self._attr_icon = icon
         self._attr_unique_id = f"{alarm.entry.entry_id}_{key}"
 

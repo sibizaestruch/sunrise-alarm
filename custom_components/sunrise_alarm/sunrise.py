@@ -83,3 +83,10 @@ def next_start(
         if wake_dt.weekday() in days and wake_dt - duration >= now:
             return wake_dt - duration
     return None
+
+
+def human_delta(delta: timedelta) -> str:
+    """Round a positive duration down to a short "2h 05m" / "9m" string."""
+    minutes = max(int(delta.total_seconds()) // 60, 0)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"

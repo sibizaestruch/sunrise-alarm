@@ -49,12 +49,14 @@ class SunriseAlarmSwitch(SwitchEntity):
     """Enable/disable the alarm and expose its runtime state."""
 
     _attr_should_poll = True
+    _attr_has_entity_name = True
+    _attr_name = None
     _attr_icon = "mdi:weather-sunset-up"
 
     def __init__(self, alarm: SunriseAlarm) -> None:
         """Initialise the entity."""
         self._alarm = alarm
-        self._attr_name = alarm.name
+        self._attr_device_info = alarm.device_info
         self._attr_unique_id = alarm.entry.entry_id
 
     @property

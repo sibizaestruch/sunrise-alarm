@@ -30,6 +30,40 @@ Three buttons run a sunrise by hand, no automation needed:
 | `button.<name>_run_sunrise_now` | Sunrise at the configured duration |
 | `button.<name>_stop_sunrise` | Stops it, lights off, alarm stays armed |
 
+## Dashboard card
+
+All entities share one device, so **Settings → Devices & services → Sunrise
+Alarm → the device → Add to dashboard** builds a card for you. For the
+countdown, paste this into a manual card instead (swap the entity ids if your
+alarm is named differently):
+
+```yaml
+type: vertical-stack
+cards:
+  - type: markdown
+    content: >-
+      {% set s = states.switch.sunrise_alarm %} ## ☀️ {{ s.name }}
+
+      Alarm at **{{ s.attributes.wake_time[:5] }}** — {{ 'enabled' if
+      is_state('switch.sunrise_alarm', 'on') else 'disabled' }}
+
+      {% if s.attributes.phase == 'sunrise' %} Sunrise running, **{{
+      s.attributes.remaining }}** to go ({{ (s.attributes.progress * 100) |
+      round }}%) {% elif s.attributes.next_sunrise_start %} Sunrise starts **{{
+      s.attributes.next_sunrise_start | as_timestamp | timestamp_custom('%a
+      %H:%M') }}**, in {{ s.attributes.starts_in }} {% endif %}
+  - type: entities
+    entities:
+      - entity: switch.sunrise_alarm
+        name: Armed
+      - button.sunrise_alarm_test_sunrise_1_min
+      - button.sunrise_alarm_run_sunrise_now
+      - button.sunrise_alarm_stop_sunrise
+```
+
+The switch attributes behind it: `phase`, `progress`, `remaining`,
+`wake_time`, `next_sunrise_start`, `next_wake`, `starts_in`.
+
 Services (target the switch):
 
 | Service | Fields | Effect |
