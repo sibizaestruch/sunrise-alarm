@@ -30,7 +30,7 @@ H = TOP + len(PROFILES) * (ROW + GAP) + 8
 
 
 def _font(size: int, bold: bool = False):
-    """A real font if the system has one, else Pillow's bitmap default."""
+    """Return a real system font, or Pillow's bitmap default."""
     for path in ("/System/Library/Fonts/Supplemental/Arial{}.ttf",
                  "/usr/share/fonts/truetype/dejavu/DejaVuSans{}.ttf"):
         try:
@@ -45,7 +45,7 @@ INNER = W - 2 * PAD
 
 
 def curve_strip(points) -> Image.Image:
-    """The whole sunrise as one gradient: x is time, colour is the lit bulb."""
+    """Draw the whole sunrise as one gradient: x is time, colour is the lit bulb."""
     strip = Image.new("RGB", (INNER, 1))
     px = strip.load()
     for x in range(INNER):
@@ -80,12 +80,16 @@ for i in range(FRAMES):
         brightness, _ = state_at(progress, points=points)
         ink = (26, 20, 14) if brightness > 45 else (208, 208, 220)
         d.text((PAD + 14, y + ROW // 2 - 9), name, font=FONT_BOLD, fill=ink)
-        d.text((PAD + INNER - 58, y + ROW // 2 - 8), f"{brightness:>3d}%", font=FONT, fill=ink)
-        if 0 < played < INNER:  # playhead, skipped at both ends so it never clips a corner
-            d.line((PAD + played, y + 2, PAD + played, y + ROW - 3), fill=(255, 255, 255), width=2)
+        d.text((PAD + INNER - 58, y + ROW // 2 - 8), f"{brightness:>3d}%",
+               font=FONT, fill=ink)
+        # playhead, skipped at both ends so it never clips a rounded corner
+        if 0 < played < INNER:
+            d.line((PAD + played, y + 2, PAD + played, y + ROW - 3),
+                   fill=(255, 255, 255), width=2)
 
     frames.append(frame.convert("P", palette=Image.ADAPTIVE, colors=64))
 
 out = ROOT / "docs/profiles.gif"
-frames[0].save(out, save_all=True, append_images=frames[1:], duration=110, loop=0, optimize=True)
+frames[0].save(out, save_all=True, append_images=frames[1:], duration=110,
+               loop=0, optimize=True)
 print(f"{out.relative_to(ROOT)}  {out.stat().st_size / 1024:.0f} KB  {frames[0].size}")
