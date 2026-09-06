@@ -111,6 +111,17 @@ Pick one in the config flow (and change it later under *Configure*):
 | `gentle` | Smooth ramp, no last-minute surge, warm to the end |
 | `daylight` | Usable light early, ends near white — for dark mornings |
 
+<img src="docs/profiles.gif" width="480" alt="The three profiles running side
+by side: each bar is the whole 30-minute sunrise as a gradient, lit left to
+right by a sweeping playhead, philips still dark at the halfway mark where
+daylight is already bright.">
+
+Regenerate it after retuning the curves:
+
+```bash
+uv run --no-project --with pillow python scripts/make_profiles_gif.py
+```
+
 ## Tuning the curve
 
 A profile is just a list of control points in
