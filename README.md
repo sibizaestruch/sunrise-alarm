@@ -54,6 +54,11 @@ The switch attributes: `phase`, `progress`, `remaining`, `wake_time`, `days`,
 
 ## Dashboard card
 
+<img src="docs/card.png" width="446" alt="The Sunrise Alarm card: a 07:00 wake
+time with 'Sunrise in 8h 39m' beside it, the week as day chips with Monday to
+Friday enabled, '30-min sunrise - philips profile', and Test, Run, Snooze and
+Stop buttons.">
+
 The integration ships its own Lovelace card and registers it itself — no
 resource to add. Pick **Sunrise Alarm** in the card picker, or:
 
