@@ -1,5 +1,4 @@
 {
   "name": "Sunrise Alarm",
-  "homeassistant": "2024.7.0",
-  "render_readme": true
+  "homeassistant": "2024.7.0"
 }
