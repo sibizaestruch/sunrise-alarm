@@ -8,6 +8,14 @@ Home Assistant custom integration that turns any `light` entities into a
 Philips-style wake-up light: a gradual sunrise of brightness and colour that
 finishes at your wake-up time.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
+  <img src="docs/card-light.png" width="446" alt="The Sunrise Alarm card: a
+  07:00 wake time with 'Sunrise in 8h 37m' beside it, the week as day chips
+  with Monday to Friday enabled, '30-min sunrise - philips profile', and Test,
+  Run, Snooze and Stop buttons.">
+</picture>
+
 ## Install
 
 ### HACS
@@ -53,14 +61,6 @@ The switch attributes: `phase`, `progress`, `remaining`, `wake_time`, `days`,
 `lights_off_at`.
 
 ## Dashboard card
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
-  <img src="docs/card-light.png" width="446" alt="The Sunrise Alarm card: a
-  07:00 wake time with 'Sunrise in 8h 37m' beside it, the week as day chips
-  with Monday to Friday enabled, '30-min sunrise - philips profile', and Test,
-  Run, Snooze and Stop buttons.">
-</picture>
 
 The integration ships its own Lovelace card and registers it itself — no
 resource to add. Pick **Sunrise Alarm** in the card picker, or:
