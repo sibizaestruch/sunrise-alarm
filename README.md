@@ -116,12 +116,6 @@ by side: each bar is the whole 30-minute sunrise as a gradient, lit left to
 right by a sweeping playhead, philips still dark at the halfway mark where
 daylight is already bright.">
 
-Regenerate it after retuning the curves:
-
-```bash
-uv run --no-project --with pillow python scripts/make_profiles_gif.py
-```
-
 ## Tuning the curve
 
 A profile is just a list of control points in
@@ -157,6 +151,12 @@ The brand icon is generated, not hand-drawn — edit and re-run:
 
 ```bash
 uv run --no-project --with pillow python scripts/make_icon.py
+```
+
+So is the profiles GIF — re-run it after retuning the curves:
+
+```bash
+uv run --no-project --with pillow python scripts/make_profiles_gif.py
 ```
 
 Hassfest validation:
