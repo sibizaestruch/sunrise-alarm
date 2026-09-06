@@ -27,9 +27,11 @@ WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6
 SERVICE_START = "start"
 SERVICE_STOP = "stop"
 SERVICE_SNOOZE = "snooze"
+SERVICE_SET_DAYS = "set_days"
 
 ATTR_DURATION = "duration"
 ATTR_MINUTES = "minutes"
+ATTR_DAYS = "days"
 
 UPDATE_INTERVAL = 5  # seconds between light updates during a sunrise
 DEFAULT_SNOOZE_MINUTES = 9

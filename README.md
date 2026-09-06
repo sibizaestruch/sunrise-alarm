@@ -1,4 +1,8 @@
+<img src="custom_components/sunrise_alarm/brand/icon.png" width="96" align="right" alt="">
+
 # Sunrise Alarm
+
+[![hacs](https://img.shields.io/badge/HACS-custom-41bdf5.svg)](https://hacs.xyz)
 
 Home Assistant custom integration that turns any `light` entities into a
 Philips-style wake-up light: a gradual sunrise of brightness and colour that
@@ -6,15 +10,23 @@ finishes at your wake-up time.
 
 ## Install
 
-Copy `custom_components/sunrise_alarm` into `/config/custom_components/`,
-restart Home Assistant, then **Settings → Devices & services → Add integration
-→ Sunrise Alarm**. No HACS needed.
+### HACS
 
-ZIP for copying to another machine:
+HACS → ⋮ → **Custom repositories** → add
+`https://github.com/sibizaestruch/sunrise-alarm` as an **Integration**, then
+download *Sunrise Alarm* and restart Home Assistant.
+
+### By hand
+
+Copy `custom_components/sunrise_alarm` into `/config/custom_components/` and
+restart. ZIP it for another machine with:
 
 ```bash
 (cd custom_components && zip -r ../sunrise_alarm.zip sunrise_alarm -x '*__pycache__*')
 ```
+
+Either way, finish with **Settings → Devices & services → Add integration →
+Sunrise Alarm**.
 
 ## Use
 
@@ -33,35 +45,23 @@ Four buttons run a sunrise by hand, no automation needed:
 
 ## Dashboard card
 
-All entities share one device, so **Settings → Devices & services → Sunrise
-Alarm → the device → Add to dashboard** builds a card for you. For the
-countdown, paste this into a manual card instead (swap the entity ids if your
-alarm is named differently):
+The integration ships its own Lovelace card and registers it itself — no
+resource to add. Pick **Sunrise Alarm** in the card picker, or:
 
 ```yaml
-type: vertical-stack
-cards:
-  - type: markdown
-    content: >-
-      {% set s = states.switch.sunrise_alarm %} ## ☀️ {{ s.name }}
-
-      Alarm at **{{ s.attributes.wake_time[:5] }}** — {{ 'enabled' if
-      is_state('switch.sunrise_alarm', 'on') else 'disabled' }}
-
-      {% if s.attributes.phase == 'sunrise' %} Sunrise running, **{{
-      s.attributes.remaining }}** to go ({{ (s.attributes.progress * 100) |
-      round }}%) {% elif s.attributes.next_sunrise_start %} Sunrise starts **{{
-      s.attributes.next_sunrise_start | as_timestamp | timestamp_custom('%a
-      %H:%M') }}**, in {{ s.attributes.starts_in }} {% endif %}
-  - type: entities
-    entities:
-      - entity: switch.sunrise_alarm
-        name: Armed
-      - button.sunrise_alarm_test_sunrise_1_min
-      - button.sunrise_alarm_run_sunrise_now
-      - button.sunrise_alarm_snooze_9_min
-      - button.sunrise_alarm_stop_sunrise
+type: custom:sunrise-alarm-card
+entity: switch.bedroom_sunrise
 ```
+
+`entity` is the alarm's switch; the buttons are found from the same device, so
+nothing else to configure. The card shows the wake time, the countdown (a
+progress bar while the sunrise runs), the whole week as chips — **tap a day to
+turn it on or off** — and the four manual buttons. A dot marks the day of the
+next sunrise, a ring marks today.
+
+All entities also share one device, so **Settings → Devices & services →
+Sunrise Alarm → the device → Add to dashboard** builds a plain card if you
+prefer one.
 
 After the sunrise finishes the lights stay at full brightness for the
 configured **extra light time** (0 = leave them on) and then switch off by
@@ -77,6 +77,7 @@ Services (target the switch):
 | `sunrise_alarm.start` | `duration` (minutes, optional) | Runs a sunrise now — use a short duration to test |
 | `sunrise_alarm.stop` | — | Stops it and turns the lights off |
 | `sunrise_alarm.snooze` | `minutes` (optional) | Lights off, then a 5 minute sunrise again. Defaults to the configured snooze time |
+| `sunrise_alarm.set_days` | `days` (required) | Sets the weekdays it runs on, e.g. `["sat", "sun"]` — what the card's day chips call |
 
 Testing with the real bulb:
 
@@ -132,6 +133,12 @@ docker run --rm -p 8123:8123 -v "$PWD/config:/config" \
 
 Then open http://localhost:8123. A `light.*` demo entity can be added with the
 `demo` integration or a `template` light.
+
+The brand icon is generated, not hand-drawn — edit and re-run:
+
+```bash
+uv run --no-project --with pillow python scripts/make_icon.py
+```
 
 Hassfest validation:
 

@@ -251,3 +251,48 @@ async def test_lights_switch_off_after_the_extra_time(hass, bulb, freezer):
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert turn_off, "lights go off once the extra time is over"
+
+
+async def test_set_days_service_reschedules(hass: HomeAssistant, bulb, freezer):
+    """The card's day chips call set_days, which persists and reschedules."""
+    freezer.move_to("2026-09-07 03:00:00+00:00")  # Monday
+    entry = await setup_alarm(hass)
+    assert hass.states.get("switch.bedroom_sunrise").attributes["days"] == [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri",
+    ]
+
+    await hass.services.async_call(
+        DOMAIN,
+        "set_days",
+        {"entity_id": "switch.bedroom_sunrise", "days": ["sat", "sun"]},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert entry.options["days"] == ["sat", "sun"]
+    state = hass.states.get("switch.bedroom_sunrise")
+    assert state.attributes["days"] == ["sat", "sun"]
+    assert state.attributes["next_sunrise_start"].weekday() == 5, "next is Saturday"
+
+
+async def test_card_is_served_and_auto_loaded(hass: HomeAssistant, bulb):
+    """Setup registers the Lovelace card so users add no dashboard resource."""
+    from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL, UrlManager
+    from homeassistant.setup import async_setup_component
+
+    from custom_components.sunrise_alarm import CARD_FILE, CARD_URL
+
+    # The real `frontend` component needs the compiled hass_frontend package,
+    # which isn't installed here: bring up http and the URL store it would make.
+    assert await async_setup_component(hass, "http", {})
+    hass.data[DATA_EXTRA_MODULE_URL] = UrlManager(lambda *args: None, [])
+
+    assert CARD_FILE.is_file(), "the card bundle ships with the integration"
+    await setup_alarm(hass)
+
+    urls = hass.data[DATA_EXTRA_MODULE_URL].urls
+    assert any(url.startswith(CARD_URL) for url in urls), urls

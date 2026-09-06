@@ -60,6 +60,16 @@
           "description": "How long to snooze. Defaults to the configured snooze time."
         }
       }
+    },
+    "set_days": {
+      "name": "Set days",
+      "description": "Sets the weekdays the alarm runs on.",
+      "fields": {
+        "days": {
+          "name": "Days",
+          "description": "Weekdays as mon, tue, wed, thu, fri, sat, sun."
+        }
+      }
     }
   }
 }

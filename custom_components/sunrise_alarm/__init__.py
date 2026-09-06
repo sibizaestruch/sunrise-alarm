@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -17,6 +20,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -44,12 +48,16 @@ from .sunrise import PROFILES, Point, active_window, human_delta, next_start, st
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.BUTTON, Platform.SWITCH]
+CARD_URL = f"/{DOMAIN}/sunrise-alarm-card.js"
+CARD_FILE = Path(__file__).parent / "www" / "sunrise-alarm-card.js"
+CARD_KEY = "card_registered"
 COLOR_MODES = {"hs", "rgb", "rgbw", "rgbww", "xy"}
 TRANSITION_SUPPORT = 32  # LightEntityFeature.TRANSITION
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a sunrise alarm from a config entry."""
+    await _async_register_card(hass)
     alarm = SunriseAlarm(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = alarm
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -68,6 +76,25 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Serve the Lovelace card and auto-load it, so users add no resource."""
+    data = hass.data.setdefault(DOMAIN, {})
+    if data.get(CARD_KEY):
+        return
+    # Claim before the first await: HA sets entries up concurrently, and a
+    # second pass through would re-register the same static path.
+    data[CARD_KEY] = True
+    try:
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(CARD_URL, str(CARD_FILE), True)]
+        )
+        version = (await async_get_integration(hass, DOMAIN)).version
+        add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    except Exception:  # noqa: BLE001 - the card is cosmetic, never fail setup
+        data[CARD_KEY] = False
+        _LOGGER.warning("Lovelace card not registered", exc_info=True)
 
 
 class SunriseAlarm:
@@ -292,6 +319,13 @@ class SunriseAlarm:
         window = active_window(now, self.wake_time, self.days, self.duration)
         self._skip_until = window[1] if window else None
         await self._turn_off()
+
+    async def async_set_days(self, days: list[str]) -> None:
+        """Change the weekdays the alarm runs on."""
+        _LOGGER.info("%s: days set to %s", self.name, days)
+        self.hass.config_entries.async_update_entry(
+            self.entry, options={**self.entry.options, CONF_DAYS: list(days)}
+        )  # persisted; the update listener reloads the entry
 
     async def async_snooze(self, minutes: float | None = None) -> None:
         """Turn the lights off and run a short sunrise again in `minutes`."""

@@ -6,18 +6,22 @@ import voluptuous as vol
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SunriseAlarm
 from .const import (
+    ATTR_DAYS,
     ATTR_DURATION,
     ATTR_MINUTES,
     CONF_ENABLED,
     DOMAIN,
+    SERVICE_SET_DAYS,
     SERVICE_SNOOZE,
     SERVICE_START,
     SERVICE_STOP,
+    WEEKDAYS,
 )
 
 
@@ -36,6 +40,11 @@ async def async_setup_entry(
         SERVICE_SNOOZE,
         {vol.Optional(ATTR_MINUTES): vol.All(vol.Coerce(float), vol.Range(min=0.1))},
         "async_snooze_sunrise",
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_DAYS,
+        {vol.Required(ATTR_DAYS): vol.All(cv.ensure_list, [vol.In(WEEKDAYS)])},
+        "async_set_days",
     )
     async_add_entities([SunriseAlarmSwitch(hass.data[DOMAIN][entry.entry_id])])
 
@@ -90,3 +99,7 @@ class SunriseAlarmSwitch(SwitchEntity):
     async def async_snooze_sunrise(self, minutes: float | None = None) -> None:
         """Service: snooze. Without `minutes`, uses the configured snooze time."""
         await self._alarm.async_snooze(minutes)
+
+    async def async_set_days(self, days: list[str]) -> None:
+        """Service: set the weekdays the alarm runs on."""
+        await self._alarm.async_set_days(days)

@@ -32,3 +32,17 @@ snooze:
           min: 1
           max: 60
           unit_of_measurement: min
+
+set_days:
+  target:
+    entity:
+      integration: sunrise_alarm
+      domain: switch
+  fields:
+    days:
+      required: true
+      example: ["mon", "tue", "wed", "thu", "fri"]
+      selector:
+        select:
+          multiple: true
+          options: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
