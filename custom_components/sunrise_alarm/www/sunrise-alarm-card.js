@@ -37,9 +37,9 @@ const STYLE = `
   .bar { height: 4px; border-radius: 2px; background: var(--divider-color); margin: 12px 0 0; overflow: hidden; }
   .bar > div { height: 100%; background: linear-gradient(90deg, #e2693c, var(--sa-sun)); transition: width 1s linear; }
 
-  .week { display: flex; gap: 6px; margin: 18px 0 12px; }
+  .week { display: flex; justify-content: space-between; gap: 6px; margin: 18px 0 12px; }
   .day {
-    flex: 1; position: relative; aspect-ratio: 1; max-height: 40px;
+    flex: 1; position: relative; aspect-ratio: 1; max-width: 40px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--divider-color); border-radius: 50%;
     background: none; color: var(--secondary-text-color);
