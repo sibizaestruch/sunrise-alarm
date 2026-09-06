@@ -30,11 +30,8 @@ Sunrise Alarm**.
 
 ## Use
 
-The integration creates one switch per alarm, e.g. `switch.bedroom_sunrise`:
-**on = armed**. Attributes expose `phase`, `progress`, `remaining`,
-`next_sunrise_start` and `next_wake`.
-
-Four buttons run a sunrise by hand, no automation needed:
+One switch per alarm, e.g. `switch.bedroom_sunrise`: **on = armed**. Four
+buttons run a sunrise by hand, no automation needed:
 
 | Button | Effect |
 | --- | --- |
@@ -42,6 +39,18 @@ Four buttons run a sunrise by hand, no automation needed:
 | `button.<name>_run_sunrise_now` | Sunrise at the configured duration |
 | `button.<name>_snooze_9_min` | Lights off, sunrise again after the configured snooze time |
 | `button.<name>_stop_sunrise` | Stops it, lights off, alarm stays armed |
+
+Once the sunrise finishes the lights hold at full brightness for the
+configured **extra light time** (0 = leave them on) and then switch off by
+themselves.
+
+The desired light state is computed from the clock every 5 seconds, so a
+restart mid-sunrise resumes at the right progress and a missed tick fixes
+itself.
+
+The switch attributes: `phase`, `progress`, `remaining`, `wake_time`, `days`,
+`duration`, `profile`, `next_sunrise_start`, `next_wake`, `starts_in`,
+`lights_off_at`.
 
 ## Dashboard card
 
@@ -54,23 +63,18 @@ entity: switch.bedroom_sunrise
 ```
 
 `entity` is the alarm's switch; the buttons are found from the same device, so
-nothing else to configure. The card shows the wake time, the countdown (a
-progress bar while the sunrise runs), the whole week as chips — **tap a day to
-turn it on or off** — and the four manual buttons. A dot marks the day of the
-next sunrise, a ring marks today.
+there is nothing else to configure. The card shows the wake time, the
+countdown, a progress bar while the sunrise runs, the four manual buttons, and
+the whole week as chips — **tap a day to turn it on or off**. A dot marks the
+day of the next sunrise, an outline marks today.
 
 All entities also share one device, so **Settings → Devices & services →
 Sunrise Alarm → the device → Add to dashboard** builds a plain card if you
 prefer one.
 
-After the sunrise finishes the lights stay at full brightness for the
-configured **extra light time** (0 = leave them on) and then switch off by
-themselves. `lights_off_at` in the switch attributes says when.
+## Services
 
-The switch attributes behind it: `phase`, `progress`, `remaining`,
-`wake_time`, `next_sunrise_start`, `next_wake`, `starts_in`, `lights_off_at`.
-
-Services (target the switch):
+Every service targets the switch:
 
 | Service | Fields | Effect |
 | --- | --- | --- |
@@ -88,10 +92,6 @@ target:
 data:
   duration: 1
 ```
-
-The desired light state is computed from the clock every 5 seconds, so a
-restart mid-sunrise resumes at the right progress and a missed tick fixes
-itself.
 
 ## Profiles
 
