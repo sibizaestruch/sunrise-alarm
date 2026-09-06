@@ -217,7 +217,18 @@ class SunriseAlarmCard extends HTMLElement {
   }
 }
 
-customElements.define("sunrise-alarm-card", SunriseAlarmCard);
+// Home Assistant boots a scoped custom element registry that REPLACES
+// window.customElements. This module is small and wins the race against the
+// app bundle, so defining right here lands in the native registry and HA's
+// later customElements.get() returns undefined ("Custom element not found").
+// Wait for HA's own element, which only exists once its registry is in place.
+(function register() {
+  if (!customElements.get("home-assistant")) {
+    setTimeout(register, 100);
+    return;
+  }
+  customElements.define("sunrise-alarm-card", SunriseAlarmCard);
+})();
 
 window.customCards = window.customCards || [];
 window.customCards.push({
