@@ -205,3 +205,49 @@ async def test_test_button_starts_sunrise(hass: HomeAssistant, bulb, freezer):
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert bulb[-1].data["brightness_pct"] == 100
+
+
+async def test_snooze_button_uses_the_configured_minutes(hass, bulb, freezer):
+    """Pressing the snooze button delays the sunrise by the configured time."""
+    async_mock_service(hass, "light", "turn_off")
+    freezer.move_to("2026-09-07 07:16:00+00:00")
+    await setup_alarm(hass, snooze_minutes=2)
+    await hass.services.async_call(
+        "button",
+        "press",
+        {"entity_id": "button.bedroom_sunrise_snooze_2_min"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    bulb.clear()
+    freezer.tick(timedelta(minutes=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert not bulb, "still snoozed after one of two minutes"
+
+    freezer.tick(timedelta(minutes=1, seconds=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert bulb, "sunrise restarts once the snooze elapses"
+
+
+async def test_lights_switch_off_after_the_extra_time(hass, bulb, freezer):
+    """The lights stay on for the configured extra time, then go off."""
+    turn_off = async_mock_service(hass, "light", "turn_off")
+    freezer.move_to("2026-09-07 07:29:00+00:00")  # one minute of sunrise left
+    await setup_alarm(hass, hold_minutes=2)
+    freezer.tick(timedelta(minutes=1, seconds=5))  # sunrise finishes
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert bulb[-1].data["brightness_pct"] == 100
+    assert not turn_off, "lights stay on during the extra time"
+
+    freezer.tick(timedelta(minutes=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert not turn_off, "still within the extra time"
+
+    freezer.tick(timedelta(minutes=1, seconds=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert turn_off, "lights go off once the extra time is over"

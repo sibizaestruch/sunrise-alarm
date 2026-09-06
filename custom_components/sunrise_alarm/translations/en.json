@@ -10,7 +10,9 @@
           "days": "Days",
           "duration": "Sunrise duration",
           "max_brightness": "Maximum brightness",
-          "profile": "Sunrise profile"
+          "profile": "Sunrise profile",
+          "snooze_minutes": "Snooze time",
+          "hold_minutes": "Extra light time after wake-up (0 = leave on)"
         },
         "description": "Set the lights, wake-up time and sunrise duration."
       }
@@ -26,7 +28,9 @@
           "days": "Days",
           "duration": "Sunrise duration",
           "max_brightness": "Maximum brightness",
-          "profile": "Sunrise profile"
+          "profile": "Sunrise profile",
+          "snooze_minutes": "Snooze time",
+          "hold_minutes": "Extra light time after wake-up (0 = leave on)"
         },
         "description": "Change the lights, wake-up time and sunrise duration."
       }
@@ -53,7 +57,7 @@
       "fields": {
         "minutes": {
           "name": "Minutes",
-          "description": "How long to snooze."
+          "description": "How long to snooze. Defaults to the configured snooze time."
         }
       }
     }

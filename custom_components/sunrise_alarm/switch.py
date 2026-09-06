@@ -18,7 +18,6 @@ from .const import (
     SERVICE_SNOOZE,
     SERVICE_START,
     SERVICE_STOP,
-    SNOOZE_MINUTES,
 )
 
 
@@ -35,11 +34,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(SERVICE_STOP, None, "async_stop_sunrise")
     platform.async_register_entity_service(
         SERVICE_SNOOZE,
-        {
-            vol.Optional(ATTR_MINUTES, default=SNOOZE_MINUTES): vol.All(
-                vol.Coerce(float), vol.Range(min=0.1)
-            )
-        },
+        {vol.Optional(ATTR_MINUTES): vol.All(vol.Coerce(float), vol.Range(min=0.1))},
         "async_snooze_sunrise",
     )
     async_add_entities([SunriseAlarmSwitch(hass.data[DOMAIN][entry.entry_id])])
@@ -92,6 +87,6 @@ class SunriseAlarmSwitch(SwitchEntity):
         """Service: stop the sunrise."""
         await self._alarm.async_stop()
 
-    async def async_snooze_sunrise(self, minutes: float) -> None:
-        """Service: snooze."""
+    async def async_snooze_sunrise(self, minutes: float | None = None) -> None:
+        """Service: snooze. Without `minutes`, uses the configured snooze time."""
         await self._alarm.async_snooze(minutes)

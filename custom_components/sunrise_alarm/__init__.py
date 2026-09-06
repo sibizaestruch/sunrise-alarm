@@ -23,13 +23,17 @@ from .const import (
     CONF_DAYS,
     CONF_DURATION,
     CONF_ENABLED,
+    CONF_HOLD_MINUTES,
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
     CONF_PROFILE,
+    CONF_SNOOZE_MINUTES,
     CONF_WAKE_TIME,
+    DEFAULT_HOLD_MINUTES,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_PROFILE,
+    DEFAULT_SNOOZE_MINUTES,
     DOMAIN,
     SNOOZE_RAMP,
     UPDATE_INTERVAL,
@@ -75,6 +79,7 @@ class SunriseAlarm:
         self.entry = entry
         self._manual: tuple[datetime, datetime] | None = None
         self._skip_until: datetime | None = None
+        self._off_at: datetime | None = None
         self._last: tuple[int, tuple[int, int, int]] | None = None
 
     # --- configuration ------------------------------------------------------
@@ -134,6 +139,16 @@ class SunriseAlarm:
         """Brightness reached at wake time."""
         return float(self._cfg.get(CONF_MAX_BRIGHTNESS, DEFAULT_MAX_BRIGHTNESS))
 
+    @property
+    def hold_minutes(self) -> float:
+        """Minutes the lights stay on after the sunrise finishes. 0 = forever."""
+        return float(self._cfg.get(CONF_HOLD_MINUTES, DEFAULT_HOLD_MINUTES))
+
+    @property
+    def snooze_minutes(self) -> float:
+        """How long the snooze button delays the sunrise."""
+        return float(self._cfg.get(CONF_SNOOZE_MINUTES, DEFAULT_SNOOZE_MINUTES))
+
     # --- runtime state ------------------------------------------------------
 
     def window(self, now: datetime) -> tuple[datetime, datetime] | None:
@@ -179,6 +194,7 @@ class SunriseAlarm:
             "starts_in": human_delta(start - now) if start else None,
             "progress": None,
             "remaining": None,
+            "lights_off_at": self._off_at,
         }
         if window is None:
             phase = "disabled" if not self.enabled else "armed"
@@ -209,6 +225,12 @@ class SunriseAlarm:
                 self._last = None
                 _LOGGER.info("%s: sunrise completed", self.name)
                 await self._apply(*state_at(1.0, self.max_brightness, self.profile))
+                hold = self.hold_minutes
+                self._off_at = now + timedelta(minutes=hold) if hold else None
+            elif self._off_at is not None and now >= self._off_at:
+                _LOGGER.info("%s: extra time over, lights off", self.name)
+                self._off_at = None
+                await self._turn_off()
             return
         start, end = window
         progress = (now - start) / (end - start)
@@ -256,6 +278,7 @@ class SunriseAlarm:
         _LOGGER.info("%s: starting sunrise, duration %s", self.name, length)
         self._manual = (now, now + length)
         self._skip_until = None
+        self._off_at = None
         self._last = None
         await self._tick()
 
@@ -265,15 +288,18 @@ class SunriseAlarm:
         now = dt_util.now()
         self._manual = None
         self._last = None
+        self._off_at = None
         window = active_window(now, self.wake_time, self.days, self.duration)
         self._skip_until = window[1] if window else None
         await self._turn_off()
 
-    async def async_snooze(self, minutes: float) -> None:
+    async def async_snooze(self, minutes: float | None = None) -> None:
         """Turn the lights off and run a short sunrise again in `minutes`."""
+        minutes = self.snooze_minutes if minutes is None else minutes
         _LOGGER.info("%s: snoozed for %s minutes", self.name, minutes)
         now = dt_util.now()
         self._last = None
+        self._off_at = None
         start = now + timedelta(minutes=minutes)
         self._manual = (start, start + timedelta(minutes=SNOOZE_RAMP))
         await self._turn_off()

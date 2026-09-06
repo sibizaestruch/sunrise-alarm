@@ -26,7 +26,7 @@ snooze:
       domain: switch
   fields:
     minutes:
-      default: 9
+      example: 9
       selector:
         number:
           min: 1

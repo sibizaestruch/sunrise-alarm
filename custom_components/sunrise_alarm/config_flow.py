@@ -16,16 +16,20 @@ from .const import (
     CONF_DAYS,
     CONF_DURATION,
     CONF_ENABLED,
+    CONF_HOLD_MINUTES,
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
     CONF_PROFILE,
+    CONF_SNOOZE_MINUTES,
     CONF_WAKE_TIME,
     DEFAULT_DAYS,
     DEFAULT_DURATION,
+    DEFAULT_HOLD_MINUTES,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
     DEFAULT_PROFILE,
+    DEFAULT_SNOOZE_MINUTES,
     DEFAULT_WAKE_TIME,
     DOMAIN,
     WEEKDAYS,
@@ -91,6 +95,22 @@ def _schema(defaults: dict, with_name: bool) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1, max=100, step=1, unit_of_measurement="%"
+                )
+            ),
+            vol.Required(
+                CONF_HOLD_MINUTES,
+                default=defaults.get(CONF_HOLD_MINUTES, DEFAULT_HOLD_MINUTES),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=180, step=1, unit_of_measurement="min"
+                )
+            ),
+            vol.Required(
+                CONF_SNOOZE_MINUTES,
+                default=defaults.get(CONF_SNOOZE_MINUTES, DEFAULT_SNOOZE_MINUTES),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1, max=60, step=1, unit_of_measurement="min"
                 )
             ),
             vol.Required(

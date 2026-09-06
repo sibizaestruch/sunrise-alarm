@@ -12,6 +12,8 @@ CONF_DURATION = "duration"
 CONF_MAX_BRIGHTNESS = "max_brightness"
 CONF_PROFILE = "profile"
 CONF_ENABLED = "enabled"
+CONF_SNOOZE_MINUTES = "snooze_minutes"
+CONF_HOLD_MINUTES = "hold_minutes"
 
 DEFAULT_NAME = "Sunrise Alarm"
 DEFAULT_WAKE_TIME = "07:30:00"
@@ -30,6 +32,7 @@ ATTR_DURATION = "duration"
 ATTR_MINUTES = "minutes"
 
 UPDATE_INTERVAL = 5  # seconds between light updates during a sunrise
-SNOOZE_MINUTES = 9
+DEFAULT_SNOOZE_MINUTES = 9
+DEFAULT_HOLD_MINUTES = 0  # minutes to stay lit after wake time; 0 = leave the lights on
 SNOOZE_RAMP = 5  # minutes of sunrise after a snooze
 TEST_DURATION = 1  # minutes for the test button

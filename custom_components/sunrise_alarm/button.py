@@ -36,6 +36,13 @@ async def async_setup_entry(
             ),
             SunriseAlarmButton(
                 alarm,
+                "snooze",
+                f"Snooze ({alarm.snooze_minutes:g} min)",
+                "mdi:alarm-snooze",
+                alarm.async_snooze,
+            ),
+            SunriseAlarmButton(
+                alarm,
                 "stop",
                 "Stop sunrise",
                 "mdi:stop",
