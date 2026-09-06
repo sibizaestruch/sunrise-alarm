@@ -26,14 +26,16 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
+    CONF_PROFILE,
     CONF_WAKE_TIME,
     DEFAULT_MAX_BRIGHTNESS,
+    DEFAULT_PROFILE,
     DOMAIN,
     SNOOZE_RAMP,
     UPDATE_INTERVAL,
     WEEKDAYS,
 )
-from .sunrise import active_window, human_delta, next_start, state_at
+from .sunrise import PROFILES, Point, active_window, human_delta, next_start, state_at
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,6 +114,12 @@ class SunriseAlarm:
         return timedelta(minutes=float(self._cfg[CONF_DURATION]))
 
     @property
+    def profile(self) -> tuple[Point, ...]:
+        """Sunrise curve to follow. Falls back if a saved profile disappeared."""
+        name = self._cfg.get(CONF_PROFILE, DEFAULT_PROFILE)
+        return PROFILES.get(name, PROFILES[DEFAULT_PROFILE])
+
+    @property
     def device_info(self) -> DeviceInfo:
         """Device grouping every entity of this alarm."""
         return DeviceInfo(
@@ -165,6 +173,7 @@ class SunriseAlarm:
             "days": self._cfg[CONF_DAYS],
             "duration": self._cfg[CONF_DURATION],
             "max_brightness": self.max_brightness,
+            "profile": self._cfg.get(CONF_PROFILE, DEFAULT_PROFILE),
             "next_sunrise_start": start,
             "next_wake": start + self.duration if start else None,
             "starts_in": human_delta(start - now) if start else None,
@@ -199,11 +208,11 @@ class SunriseAlarm:
             if self._last is not None:  # window just ended: land on the final state
                 self._last = None
                 _LOGGER.info("%s: sunrise completed", self.name)
-                await self._apply(*state_at(1.0, self.max_brightness))
+                await self._apply(*state_at(1.0, self.max_brightness, self.profile))
             return
         start, end = window
         progress = (now - start) / (end - start)
-        brightness, rgb = state_at(progress, self.max_brightness)
+        brightness, rgb = state_at(progress, self.max_brightness, self.profile)
         if self._last is not None:
             last_brightness, last_rgb = self._last
             if (

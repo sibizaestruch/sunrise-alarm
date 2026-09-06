@@ -152,6 +152,18 @@ async def test_snooze_pauses_then_restarts(hass, bulb, freezer):
     assert bulb[0].data["brightness_pct"] == 1
 
 
+async def test_profile_choice_changes_the_colours(hass: HomeAssistant, bulb, freezer):
+    """The configured profile is the curve that actually reaches the light."""
+    entry = await setup_alarm(hass, profile="daylight")
+    alarm = hass.data[DOMAIN][entry.entry_id]
+    await alarm.async_start_sunrise(duration=1)
+    freezer.tick(timedelta(seconds=30))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    # halfway through "daylight" is far brighter than halfway through "philips"
+    assert bulb[-1].data["brightness_pct"] >= 30
+
+
 async def test_brightness_only_light_gets_no_colour(hass, freezer):
     """Lights without colour support only receive brightness."""
     hass.states.async_set(

@@ -19,17 +19,39 @@ class Point:
     rgb: tuple[int, int, int]
 
 
-# Philips-inspired. Tune these against the real bulb; the points *are* the
-# brightness curve, so no separate easing function is needed.
-# ponytail: single hardcoded profile, add a profile option when a second one exists.
-SUNRISE: tuple[Point, ...] = (
-    Point(0.00, 1, (255, 20, 0)),
-    Point(0.15, 2, (255, 45, 0)),
-    Point(0.35, 8, (255, 90, 5)),
-    Point(0.55, 20, (255, 145, 25)),
-    Point(0.75, 45, (255, 190, 80)),
-    Point(1.00, 100, (255, 225, 170)),
-)
+# Tune these against the real bulb; the points *are* the brightness curve, so
+# no separate easing function is needed.
+PROFILES: dict[str, tuple[Point, ...]] = {
+    # Philips-inspired: dim and red for a long time, strong surge at the end.
+    "philips": (
+        Point(0.00, 1, (255, 20, 0)),
+        Point(0.15, 2, (255, 45, 0)),
+        Point(0.35, 8, (255, 90, 5)),
+        Point(0.55, 20, (255, 145, 25)),
+        Point(0.75, 45, (255, 190, 80)),
+        Point(1.00, 100, (255, 225, 170)),
+    ),
+    # Gentle: smoother ramp, no last-minute surge, stays warm to the end.
+    "gentle": (
+        Point(0.00, 1, (255, 30, 0)),
+        Point(0.20, 4, (255, 60, 5)),
+        Point(0.40, 12, (255, 100, 15)),
+        Point(0.60, 28, (255, 140, 40)),
+        Point(0.80, 55, (255, 180, 90)),
+        Point(1.00, 100, (255, 214, 170)),
+    ),
+    # Daylight: usable light early, ends near white. For dark winter mornings.
+    "daylight": (
+        Point(0.00, 1, (255, 25, 0)),
+        Point(0.10, 3, (255, 60, 0)),
+        Point(0.30, 15, (255, 120, 20)),
+        Point(0.50, 40, (255, 170, 60)),
+        Point(0.75, 75, (255, 214, 140)),
+        Point(1.00, 100, (255, 240, 220)),
+    ),
+}
+
+SUNRISE: tuple[Point, ...] = PROFILES["philips"]
 
 
 def _lerp(a: float, b: float, t: float) -> float:

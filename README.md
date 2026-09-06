@@ -86,14 +86,25 @@ The desired light state is computed from the clock every 5 seconds, so a
 restart mid-sunrise resumes at the right progress and a missed tick fixes
 itself.
 
+## Profiles
+
+Pick one in the config flow (and change it later under *Configure*):
+
+| Profile | Shape |
+| --- | --- |
+| `philips` | Dim and red for a long time, strong surge at the end |
+| `gentle` | Smooth ramp, no last-minute surge, warm to the end |
+| `daylight` | Usable light early, ends near white — for dark mornings |
+
 ## Tuning the curve
 
-The whole sunrise is the `SUNRISE` control points in
-`custom_components/sunrise_alarm/sunrise.py`. Edit them, then look before
-touching the bulb:
+A profile is just a list of control points in
+`custom_components/sunrise_alarm/sunrise.py`. Edit them, or add a profile to
+`PROFILES` and a label to `_PROFILE_LABELS` in `config_flow.py`, then look
+before touching the bulb:
 
 ```bash
-uv run python scripts/simulate_sunrise.py --duration 30
+uv run python scripts/simulate_sunrise.py --duration 30 --profile gentle
 ```
 
 ## Development

@@ -5,6 +5,7 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from custom_components.sunrise_alarm.sunrise import (
+    PROFILES,
     SUNRISE,
     active_window,
     human_delta,
@@ -27,20 +28,23 @@ def test_endpoints_match_the_profile():
     assert state_at(1.0) == (100, SUNRISE[-1].rgb)
 
 
-def test_brightness_is_monotonic_and_in_range():
+@pytest.mark.parametrize("points", PROFILES.values(), ids=list(PROFILES))
+def test_brightness_is_monotonic_and_in_range(points):
     previous = 0
     for step in range(101):
-        brightness, rgb = state_at(step / 100)
+        brightness, rgb = state_at(step / 100, 100, points)
         assert 1 <= brightness <= 100
         assert brightness >= previous
         assert all(0 <= channel <= 255 for channel in rgb)
         previous = brightness
+    assert brightness == 100
 
 
-def test_colour_moves_from_red_to_warm_white():
-    green = [state_at(step / 20)[1][1] for step in range(21)]
+@pytest.mark.parametrize("points", PROFILES.values(), ids=list(PROFILES))
+def test_colour_moves_from_red_to_warm_white(points):
+    green = [state_at(step / 20, 100, points)[1][1] for step in range(21)]
     assert green == sorted(green)
-    assert state_at(0.0)[1][2] < state_at(1.0)[1][2]
+    assert state_at(0.0, 100, points)[1][2] < state_at(1.0, 100, points)[1][2]
 
 
 def test_max_brightness_scales_the_curve():

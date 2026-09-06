@@ -10,6 +10,7 @@ CONF_WAKE_TIME = "wake_time"
 CONF_DAYS = "days"
 CONF_DURATION = "duration"
 CONF_MAX_BRIGHTNESS = "max_brightness"
+CONF_PROFILE = "profile"
 CONF_ENABLED = "enabled"
 
 DEFAULT_NAME = "Sunrise Alarm"
@@ -17,6 +18,7 @@ DEFAULT_WAKE_TIME = "07:30:00"
 DEFAULT_DAYS = ["mon", "tue", "wed", "thu", "fri"]
 DEFAULT_DURATION = 30  # minutes
 DEFAULT_MAX_BRIGHTNESS = 100  # percent
+DEFAULT_PROFILE = "philips"
 
 WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 

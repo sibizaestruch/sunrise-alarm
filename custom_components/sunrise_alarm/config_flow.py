@@ -19,15 +19,24 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
+    CONF_PROFILE,
     CONF_WAKE_TIME,
     DEFAULT_DAYS,
     DEFAULT_DURATION,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_NAME,
+    DEFAULT_PROFILE,
     DEFAULT_WAKE_TIME,
     DOMAIN,
     WEEKDAYS,
 )
+from .sunrise import PROFILES
+
+_PROFILE_LABELS = {
+    "philips": "Philips-inspired (dim and red for long, surge at the end)",
+    "gentle": "Gentle (smooth ramp, warm to the end)",
+    "daylight": "Daylight (bright early, ends near white)",
+}
 
 _DAY_LABELS = {
     "mon": "Monday",
@@ -82,6 +91,18 @@ def _schema(defaults: dict, with_name: bool) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1, max=100, step=1, unit_of_measurement="%"
+                )
+            ),
+            vol.Required(
+                CONF_PROFILE, default=defaults.get(CONF_PROFILE, DEFAULT_PROFILE)
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(
+                            value=name, label=_PROFILE_LABELS[name]
+                        )
+                        for name in PROFILES
+                    ]
                 )
             ),
         }

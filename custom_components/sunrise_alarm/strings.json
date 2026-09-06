@@ -9,7 +9,8 @@
           "wake_time": "Wake-up time",
           "days": "Days",
           "duration": "Sunrise duration",
-          "max_brightness": "Maximum brightness"
+          "max_brightness": "Maximum brightness",
+          "profile": "Sunrise profile"
         },
         "description": "Set the lights, wake-up time and sunrise duration."
       }
@@ -24,7 +25,8 @@
           "wake_time": "Wake-up time",
           "days": "Days",
           "duration": "Sunrise duration",
-          "max_brightness": "Maximum brightness"
+          "max_brightness": "Maximum brightness",
+          "profile": "Sunrise profile"
         },
         "description": "Change the lights, wake-up time and sunrise duration."
       }

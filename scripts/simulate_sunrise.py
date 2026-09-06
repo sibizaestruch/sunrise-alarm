@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from custom_components.sunrise_alarm.sunrise import state_at  # noqa: E402
+from custom_components.sunrise_alarm.sunrise import PROFILES, state_at  # noqa: E402
 
 
 def main() -> None:
@@ -21,13 +21,15 @@ def main() -> None:
     parser.add_argument("--duration", type=float, default=30, help="minutes")
     parser.add_argument("--steps", type=int, default=20)
     parser.add_argument("--max-brightness", type=float, default=100)
+    parser.add_argument("--profile", choices=list(PROFILES), default="philips")
     args = parser.parse_args()
+    points = PROFILES[args.profile]
 
-    print(f"Sunrise duration: {args.duration:g} minutes\n")
+    print(f"Sunrise duration: {args.duration:g} minutes, profile: {args.profile}\n")
     print("  time  progress  brightness  rgb                bar")
     for step in range(args.steps + 1):
         progress = step / args.steps
-        brightness, rgb = state_at(progress, args.max_brightness)
+        brightness, rgb = state_at(progress, args.max_brightness, points)
         minutes = progress * args.duration
         bar = "#" * round(brightness / 2)
         print(
@@ -39,7 +41,7 @@ def main() -> None:
     print("\nRGB channels (R=r G=g B=b):")
     for step in range(args.steps + 1):
         progress = step / args.steps
-        _, rgb = state_at(progress, args.max_brightness)
+        _, rgb = state_at(progress, args.max_brightness, points)
         row = [" "] * 52
         for channel, char in zip(rgb, "rgb"):
             row[round(channel / 5)] = char
