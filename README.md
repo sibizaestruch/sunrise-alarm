@@ -6,14 +6,15 @@
 
 Home Assistant custom integration that turns any `light` entities into a
 Philips-style wake-up light: a gradual sunrise of brightness and colour that
-finishes at your wake-up time.
+finishes at your wake-up time, at a time you set per day of the week.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
-  <img src="docs/card-light.png" width="446" alt="The Sunrise Alarm card: a
-  07:00 wake time with 'Sunrise in 8h 37m' beside it, the week as day chips
-  with Monday to Friday enabled, '30-min sunrise - philips profile', and Test,
-  Run, Snooze and Stop buttons.">
+  <img src="docs/card-light.png" width="446" alt="The Sunrise Alarm card: the
+  next wake time of 7:30 AM on Monday with 'Sunrise in 39h 24m' beside it and
+  '15-min sunrise' under that, the week as day chips each showing its own time
+  with Monday to Saturday set to 7:30a and Sunday off, and Test, Run, Snooze
+  and Stop buttons.">
 </picture>
 
 ## Install
@@ -56,9 +57,11 @@ The desired light state is computed from the clock every 5 seconds, so a
 restart mid-sunrise resumes at the right progress and a missed tick fixes
 itself.
 
-The switch attributes: `phase`, `progress`, `remaining`, `wake_time`, `days`,
+The switch attributes: `phase`, `progress`, `remaining`, `schedule`, `days`,
 `duration`, `profile`, `next_sunrise_start`, `next_wake`, `starts_in`,
-`lights_off_at`.
+`lights_off_at`. `schedule` is the wake time per weekday, e.g.
+`{"mon": "07:00:00", "sat": "09:30:00"}`; a day that is not in it has no alarm,
+and `days` is just its keys.
 
 ## Dashboard card
 
@@ -71,10 +74,18 @@ entity: switch.bedroom_sunrise
 ```
 
 `entity` is the alarm's switch; the buttons are found from the same device, so
-there is nothing else to configure. The card shows the wake time, the
-countdown, a progress bar while the sunrise runs, the four manual buttons, and
-the whole week as chips — **tap a day to turn it on or off**. A dot marks the
-day of the next sunrise, an outline marks today.
+there is nothing else to configure. The card leads with the next wake time and
+its countdown, shows a progress bar while the sunrise runs, and ends with the
+four manual buttons. Between them is the whole week, a column per day:
+
+- **tap the chip** to turn that day on or off — switching one on borrows a time
+  from the days already set;
+- **tap the time under it** for the time picker; picking a time on a day that
+  is off turns it on.
+
+The next sunrise's day is the one in sun colour, an outline marks today, and
+the card is the only place the schedule is edited — *Configure* covers the
+lights and the curve.
 
 All entities also share one device, so **Settings → Devices & services →
 Sunrise Alarm → the device → Add to dashboard** builds a plain card if you
@@ -89,7 +100,8 @@ Every service targets the switch:
 | `sunrise_alarm.start` | `duration` (minutes, optional) | Runs a sunrise now — use a short duration to test |
 | `sunrise_alarm.stop` | — | Stops it and turns the lights off |
 | `sunrise_alarm.snooze` | `minutes` (optional) | Lights off, then a 5 minute sunrise again. Defaults to the configured snooze time |
-| `sunrise_alarm.set_days` | `days` (required) | Sets the weekdays it runs on, e.g. `["sat", "sun"]` — what the card's day chips call |
+| `sunrise_alarm.set_schedule` | `schedule` (required) | Replaces the schedule, e.g. `{"sat": "09:30:00"}` — what the card edits |
+| `sunrise_alarm.set_days` | `days` (required) | Runs on these weekdays only, e.g. `["sat", "sun"]`, keeping each day's time |
 
 Testing with the real bulb:
 
