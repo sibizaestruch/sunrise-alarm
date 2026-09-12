@@ -236,4 +236,5 @@ window.customCards.push({
   name: "Sunrise Alarm",
   description: "Wake-up light: week schedule, countdown, progress and manual buttons.",
   documentationURL: "https://github.com/sibizaestruch/sunrise-alarm",
+  preview: true,
 });
