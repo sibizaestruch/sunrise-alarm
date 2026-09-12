@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from pathlib import Path
 
 from homeassistant.components.frontend import add_extra_js_url
@@ -32,12 +32,15 @@ from .const import (
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
     CONF_PROFILE,
+    CONF_SCHEDULE,
     CONF_SNOOZE_MINUTES,
     CONF_WAKE_TIME,
+    DEFAULT_DAYS,
     DEFAULT_HOLD_MINUTES,
     DEFAULT_MAX_BRIGHTNESS,
     DEFAULT_PROFILE,
     DEFAULT_SNOOZE_MINUTES,
+    DEFAULT_WAKE_TIME,
     DOMAIN,
     SNOOZE_RAMP,
     UPDATE_INTERVAL,
@@ -131,14 +134,20 @@ class SunriseAlarm:
         return list(self._cfg[CONF_LIGHTS])
 
     @property
-    def wake_time(self):
-        """Configured wake-up time."""
-        return dt_util.parse_time(self._cfg[CONF_WAKE_TIME])
+    def schedule(self) -> dict[str, str]:
+        """Wake time per weekday name; a missing day has no alarm."""
+        cfg = self._cfg
+        if CONF_SCHEDULE in cfg:
+            return {d: t for d, t in cfg[CONF_SCHEDULE].items() if d in WEEKDAYS}
+        # Pre-0.3 config: one wake time shared by a set of days.
+        wake = cfg.get(CONF_WAKE_TIME, DEFAULT_WAKE_TIME)
+        return {d: wake for d in cfg.get(CONF_DAYS, DEFAULT_DAYS) if d in WEEKDAYS}
 
     @property
-    def days(self) -> set[int]:
-        """Weekday numbers the alarm runs on."""
-        return {WEEKDAYS[day] for day in self._cfg[CONF_DAYS] if day in WEEKDAYS}
+    def _by_weekday(self) -> dict[int, time]:
+        """The schedule keyed the way the scheduling maths wants it."""
+        parsed = {WEEKDAYS[d]: dt_util.parse_time(t) for d, t in self.schedule.items()}
+        return {day: at for day, at in parsed.items() if at is not None}
 
     @property
     def duration(self) -> timedelta:
@@ -192,7 +201,7 @@ class SunriseAlarm:
             return None
         if not self.enabled:
             return None
-        return active_window(now, self.wake_time, self.days, self.duration)
+        return active_window(now, self._by_weekday, self.duration)
 
     @property
     def next_start(self) -> datetime | None:
@@ -202,7 +211,7 @@ class SunriseAlarm:
         now = dt_util.now()
         if self._manual is not None and now < self._manual[0]:
             return self._manual[0]
-        return next_start(now, self.wake_time, self.days, self.duration)
+        return next_start(now, self._by_weekday, self.duration)
 
     @property
     def state(self) -> dict:
@@ -210,9 +219,10 @@ class SunriseAlarm:
         now = dt_util.now()
         window = self.window(now)
         start = self.next_start
+        schedule = self.schedule
         attrs = {
-            "wake_time": self._cfg[CONF_WAKE_TIME],
-            "days": self._cfg[CONF_DAYS],
+            "schedule": schedule,
+            "days": sorted(schedule, key=WEEKDAYS.__getitem__),
             "duration": self._cfg[CONF_DURATION],
             "max_brightness": self.max_brightness,
             "profile": self._cfg.get(CONF_PROFILE, DEFAULT_PROFILE),
@@ -316,16 +326,23 @@ class SunriseAlarm:
         self._manual = None
         self._last = None
         self._off_at = None
-        window = active_window(now, self.wake_time, self.days, self.duration)
+        window = active_window(now, self._by_weekday, self.duration)
         self._skip_until = window[1] if window else None
         await self._turn_off()
 
-    async def async_set_days(self, days: list[str]) -> None:
-        """Change the weekdays the alarm runs on."""
-        _LOGGER.info("%s: days set to %s", self.name, days)
+    async def async_set_schedule(self, schedule: dict[str, str]) -> None:
+        """Replace the whole schedule: {"mon": "07:00:00", ...}."""
+        _LOGGER.info("%s: schedule set to %s", self.name, schedule)
         self.hass.config_entries.async_update_entry(
-            self.entry, options={**self.entry.options, CONF_DAYS: list(days)}
+            self.entry,
+            options={**self.entry.options, CONF_SCHEDULE: dict(schedule)},
         )  # persisted; the update listener reloads the entry
+
+    async def async_set_days(self, days: list[str]) -> None:
+        """Keep the alarm on `days` only, reusing each day's existing time."""
+        current = self.schedule
+        fallback = next(iter(current.values()), DEFAULT_WAKE_TIME)
+        await self.async_set_schedule({d: current.get(d, fallback) for d in days})
 
     async def async_snooze(self, minutes: float | None = None) -> None:
         """Turn the lights off and run a short sunrise again in `minutes`."""

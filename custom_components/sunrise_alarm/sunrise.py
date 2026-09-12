@@ -75,8 +75,9 @@ def state_at(
 
 
 # --- scheduling -------------------------------------------------------------
-# `days` are weekday numbers (Mon=0) of the *wake* time, so a 00:05 alarm on
-# Monday with a 30 minute sunrise starts on Sunday at 23:35.
+# A schedule maps a weekday number (Mon=0) to that day's *wake* time; a day
+# that is missing has no alarm. The wake time is what the days key on, so a
+# 00:05 alarm on Monday starts on Sunday at 23:35.
 
 
 def _wake_on(day: datetime, wake: time) -> datetime:
@@ -84,27 +85,36 @@ def _wake_on(day: datetime, wake: time) -> datetime:
 
 
 def active_window(
-    now: datetime, wake: time, days: set[int], duration: timedelta
+    now: datetime, schedule: dict[int, time], duration: timedelta
 ) -> tuple[datetime, datetime] | None:
     """Return (start, wake) if `now` is inside a sunrise, else None."""
     for offset in (0, 1):
-        wake_dt = _wake_on(now + timedelta(days=offset), wake)
-        if wake_dt.weekday() in days and wake_dt - duration <= now < wake_dt:
+        day = now + timedelta(days=offset)
+        wake = schedule.get(day.weekday())
+        if wake is None:
+            continue
+        wake_dt = _wake_on(day, wake)
+        if wake_dt - duration <= now < wake_dt:
             return wake_dt - duration, wake_dt
     return None
 
 
 def next_start(
-    now: datetime, wake: time, days: set[int], duration: timedelta
+    now: datetime, schedule: dict[int, time], duration: timedelta
 ) -> datetime | None:
     """Return the next sunrise start at or after `now`."""
-    if not days:
+    if not schedule:
         return None
+    starts = []
     for offset in range(8):
-        wake_dt = _wake_on(now + timedelta(days=offset), wake)
-        if wake_dt.weekday() in days and wake_dt - duration >= now:
-            return wake_dt - duration
-    return None
+        day = now + timedelta(days=offset)
+        wake = schedule.get(day.weekday())
+        if wake is None:
+            continue
+        start = _wake_on(day, wake) - duration
+        if start >= now:
+            starts.append(start)
+    return min(starts) if starts else None
 
 
 def human_delta(delta: timedelta) -> str:

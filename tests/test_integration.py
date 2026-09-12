@@ -52,6 +52,11 @@ async def test_config_flow(hass: HomeAssistant):
     result = await hass.config_entries.flow.async_configure(result["flow_id"], CONFIG)
     assert result["type"] == "create_entry"
     assert result["title"] == "Bedroom Sunrise"
+    # one wake time on a set of days is stored as a time per day
+    assert result["data"]["schedule"] == dict.fromkeys(
+        ["mon", "tue", "wed", "thu", "fri"], "07:30:00"
+    )
+    assert "wake_time" not in result["data"]
 
 
 async def test_manual_sunrise_runs_to_full_brightness(
@@ -254,7 +259,7 @@ async def test_lights_switch_off_after_the_extra_time(hass, bulb, freezer):
 
 
 async def test_set_days_service_reschedules(hass: HomeAssistant, bulb, freezer):
-    """The card's day chips call set_days, which persists and reschedules."""
+    """set_days keeps working, moving each day's time onto the new days."""
     freezer.move_to("2026-09-07 03:00:00+00:00")  # Monday
     entry = await setup_alarm(hass)
     assert hass.states.get("switch.bedroom_sunrise").attributes["days"] == [
@@ -273,10 +278,68 @@ async def test_set_days_service_reschedules(hass: HomeAssistant, bulb, freezer):
     )
     await hass.async_block_till_done()
 
-    assert entry.options["days"] == ["sat", "sun"]
+    assert entry.options["schedule"] == {"sat": "07:30:00", "sun": "07:30:00"}
     state = hass.states.get("switch.bedroom_sunrise")
     assert state.attributes["days"] == ["sat", "sun"]
     assert state.attributes["next_sunrise_start"].weekday() == 5, "next is Saturday"
+
+
+async def test_set_schedule_service_gives_each_day_its_own_time(hass, bulb, freezer):
+    """The card's time slots call set_schedule, which persists and reschedules."""
+    freezer.move_to("2026-09-11 12:00:00+00:00")  # Friday lunchtime
+    entry = await setup_alarm(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        "set_schedule",
+        {
+            "entity_id": "switch.bedroom_sunrise",
+            "schedule": {"fri": "07:00:00", "sat": "09:30:00"},
+        },
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    assert entry.options["schedule"] == {"fri": "07:00:00", "sat": "09:30:00"}
+    state = hass.states.get("switch.bedroom_sunrise")
+    assert state.attributes["schedule"] == {"fri": "07:00:00", "sat": "09:30:00"}
+    assert state.attributes["days"] == ["fri", "sat"]
+    # Friday 07:00 is gone; the next sunrise is Saturday's, 30 min before 09:30.
+    start = state.attributes["next_sunrise_start"]
+    assert (start.weekday(), start.hour, start.minute) == (5, 9, 0)
+
+
+async def test_old_wake_time_config_still_runs(hass: HomeAssistant, bulb, freezer):
+    """An entry saved before per-day times keeps its single wake time."""
+    freezer.move_to("2026-09-07 07:16:00+00:00")  # Monday, mid-window
+    entry = await setup_alarm(hass)  # CONFIG is the pre-schedule shape
+    assert "schedule" not in entry.data
+    assert bulb, "the migrated schedule still drives the lights"
+    state = hass.states.get("switch.bedroom_sunrise")
+    assert state.attributes["schedule"] == dict.fromkeys(
+        ["mon", "tue", "wed", "thu", "fri"], "07:30:00"
+    )
+
+
+async def test_options_flow_keeps_the_schedule(hass: HomeAssistant, bulb):
+    """Editing the lights or the profile must not wipe the card's schedule."""
+    entry = await setup_alarm(hass, schedule={"sat": "09:30:00"})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert "wake_time" not in result["data_schema"].schema, "the card owns the times"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "lights": ["light.bedroom"],
+            "duration": 45,
+            "max_brightness": 80,
+            "hold_minutes": 0,
+            "snooze_minutes": 9,
+            "profile": "gentle",
+        },
+    )
+    await hass.async_block_till_done()
+    assert result["data"]["schedule"] == {"sat": "09:30:00"}
+    assert entry.options["schedule"] == {"sat": "09:30:00"}
 
 
 async def test_card_is_served_and_auto_loaded(hass: HomeAssistant, bulb):
