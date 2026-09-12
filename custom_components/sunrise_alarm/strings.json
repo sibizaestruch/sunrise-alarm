@@ -75,7 +75,7 @@
       "fields": {
         "schedule": {
           "name": "Schedule",
-          "description": "Wake-up time per weekday, e.g. {\"mon\": \"07:00:00\"}. Days left out have no alarm."
+          "description": "Wake-up time per weekday: keys mon, tue, wed, thu, fri, sat, sun, each with a time like 07:00:00. Days left out have no alarm."
         }
       }
     }
