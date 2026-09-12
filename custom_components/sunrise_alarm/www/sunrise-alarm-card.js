@@ -11,6 +11,7 @@
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const DAY_LETTER = { mon: "M", tue: "T", wed: "W", thu: "T", fri: "F", sat: "S", sun: "S" };
+const NEW_DAY_TIME = "07:30:00"; // used when a day is switched on and nothing else is
 
 const BUTTONS = [
   { key: "test", icon: "mdi:test-tube", label: "Test" },
@@ -26,34 +27,52 @@ const PHASES = {
   disabled: { icon: "mdi:alarm-off", color: "var(--secondary-text-color)" },
 };
 
+/** Compare two schedules ignoring key order and seconds. */
+const key = (s) =>
+  DAYS.filter((d) => s && s[d])
+    .map((d) => `${d}${s[d].slice(0, 5)}`)
+    .join();
+
 const STYLE = `
   ha-card { --sa-sun: #ffb53d; padding: 16px; }
   .head { display: flex; align-items: center; gap: 12px; }
   .head ha-icon { --mdc-icon-size: 30px; }
   .title { flex: 1; font-size: 1.05em; font-weight: 500; cursor: pointer; }
-  .clock { display: flex; align-items: baseline; gap: 12px; margin: 10px 0 2px; }
+
+  .hero { display: flex; align-items: baseline; gap: 14px; margin: 12px 0 2px; }
   .time { font-size: 2.6em; font-weight: 300; line-height: 1; letter-spacing: -0.02em; }
-  .status { flex: 1; color: var(--secondary-text-color); font-size: 0.95em; }
+  .when { color: var(--secondary-text-color); font-size: 0.8em; margin-top: 4px; }
+  .meta { flex: 1; text-align: right; color: var(--secondary-text-color); }
+  .status { color: var(--primary-text-color); font-size: 0.95em; }
+  .legend { font-size: 0.75em; margin-top: 4px; }
+
   .bar { height: 4px; border-radius: 2px; background: var(--divider-color); margin: 12px 0 0; overflow: hidden; }
   .bar > div { height: 100%; background: linear-gradient(90deg, #e2693c, var(--sa-sun)); transition: width 1s linear; }
 
-  .week { display: flex; justify-content: space-between; gap: 6px; margin: 18px 0 12px; }
-  .day {
-    flex: 1; position: relative; aspect-ratio: 1; max-width: 40px;
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 16px 0 2px; }
+  .week.off { opacity: 0.45; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+  .chip {
+    width: 100%; max-width: 34px; aspect-ratio: 1;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--divider-color); border-radius: 50%;
     background: none; color: var(--secondary-text-color);
     font: inherit; font-size: 0.85em; font-weight: 500; cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
-  .day:hover { border-color: var(--sa-sun); }
-  .day.on { background: var(--sa-sun); border-color: var(--sa-sun); color: #2b1b0a; }
-  .day.today { border-color: var(--primary-text-color); }
-  .day.next::after {
-    content: ""; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
-    width: 5px; height: 5px; border-radius: 50%; background: var(--sa-sun);
+  .chip:hover { border-color: var(--sa-sun); }
+  .col.on .chip { background: var(--sa-sun); border-color: var(--sa-sun); color: #2b1b0a; }
+  .col.today .chip { box-shadow: 0 0 0 2px var(--primary-text-color); }
+  .slot {
+    position: relative; width: 100%; padding: 2px 0; border-radius: 6px;
+    text-align: center; cursor: pointer; font-size: 0.7em;
+    font-variant-numeric: tabular-nums; color: var(--secondary-text-color);
   }
-  .legend { color: var(--secondary-text-color); font-size: 0.75em; margin-top: 10px; }
+  .slot:hover { background: var(--secondary-background-color); }
+  .col.next .slot { color: var(--sa-sun); font-weight: 600; }
+  /* The native time picker, anchored over the slot it edits but invisible:
+     the slot draws the time itself, compactly and in the user's format. */
+  .picker { position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; padding: 0; }
 
   .buttons { display: flex; gap: 8px; margin-top: 14px; }
   .buttons button {
@@ -70,8 +89,7 @@ const STYLE = `
 class SunriseAlarmCard extends HTMLElement {
   static getStubConfig(hass) {
     const entity = Object.keys(hass.states).find(
-      (id) =>
-        id.startsWith("switch.") && hass.states[id].attributes.next_sunrise_start !== undefined,
+      (id) => id.startsWith("switch.") && hass.states[id].attributes.schedule !== undefined,
     );
     return { entity: entity || "switch.sunrise_alarm" };
   }
@@ -83,6 +101,8 @@ class SunriseAlarmCard extends HTMLElement {
     this._config = config;
     this._buttons = null;
     this._root = null;
+    this._pending = null; // schedule shown until the entity catches up
+    this._editing = null; // day whose time picker is open
     this.innerHTML = "";
   }
 
@@ -99,7 +119,10 @@ class SunriseAlarmCard extends HTMLElement {
     }
     if (state === this._state) return; // hass changes on every state in the system
     this._state = state;
-    this._render();
+    if (this._pending && key(state.attributes.schedule) === key(this._pending)) {
+      this._pending = null;
+    }
+    if (this._editing === null) this._render(); // never yank an open picker away
     if (this._buttons === null) this._resolveButtons();
   }
 
@@ -114,7 +137,7 @@ class SunriseAlarmCard extends HTMLElement {
       // unique_id is `<config entry id>_<key>`; the key is what the card acts on
       this._buttons[entry.unique_id.split("_").pop()] = entry.entity_id;
     }
-    this._render();
+    if (this._editing === null) this._render();
   }
 
   /** Week starting on the day the user's HA locale starts on. */
@@ -124,13 +147,52 @@ class SunriseAlarmCard extends HTMLElement {
     return offset <= 0 ? DAYS : [...DAYS.slice(offset), ...DAYS.slice(0, offset)];
   }
 
+  /** The schedule to draw: the optimistic one while a change is in flight. */
+  _schedule() {
+    return this._pending || this._state.attributes.schedule || {};
+  }
+
+  /** HA's hour format: "12"/"24" say outright, "language"/"system" imply it. */
+  _h12() {
+    const format = (this._hass.locale || {}).time_format;
+    if (format === "12") return true;
+    if (format === "24") return false;
+    const options = new Intl.DateTimeFormat(this._language(), { hour: "numeric" });
+    return options.resolvedOptions().hour12 === true;
+  }
+
+  /** "07:00:00" -> "07:00" / "7:00 AM", or the compact "7:00a" for the week. */
+  _fmt(value, compact) {
+    const [h, m] = value.split(":").map(Number);
+    const minute = String(m).padStart(2, "0");
+    if (!this._h12()) return `${String(h).padStart(2, "0")}:${minute}`;
+    const hour = h % 12 || 12;
+    return compact ? `${hour}:${minute}${h < 12 ? "a" : "p"}` : `${hour}:${minute} ${h < 12 ? "AM" : "PM"}`;
+  }
+
+  /** The language HA formats in: its own, the browser's, or unset for "system". */
+  _language() {
+    const locale = this._hass.locale || {};
+    return locale.time_format === "system" ? undefined : locale.language || undefined;
+  }
+
+  /** "today" / "tomorrow" / "Saturday" for an ISO timestamp. */
+  _when(iso) {
+    const midnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const date = new Date(iso);
+    const days = Math.round((midnight(date) - midnight(new Date())) / 86400000);
+    if (days === 0) return "today";
+    if (days === 1) return "tomorrow";
+    return date.toLocaleDateString(this._language(), { weekday: "long" });
+  }
+
   _render() {
     const state = this._state;
     const a = state.attributes;
     const phase = PHASES[a.phase] || PHASES.armed;
-    const active = new Set(a.days || []);
+    const schedule = this._schedule();
     const today = DAYS[(new Date().getDay() + 6) % 7];
-    const next = a.next_sunrise_start ? DAYS[(new Date(a.next_sunrise_start).getDay() + 6) % 7] : null;
+    const next = a.next_wake ? DAYS[(new Date(a.next_wake).getDay() + 6) % 7] : null;
 
     if (!this._root) {
       this.innerHTML = `<style>${STYLE}</style><ha-card></ha-card>`;
@@ -142,25 +204,35 @@ class SunriseAlarmCard extends HTMLElement {
         <span class="title">${a.friendly_name || "Sunrise Alarm"}</span>
         <ha-switch ${state.state === "on" ? "checked" : ""}></ha-switch>
       </div>
-      <div class="clock">
-        <span class="time">${(a.wake_time || "").slice(0, 5)}</span>
-        <span class="status">${this._status(state)}</span>
+      <div class="hero">
+        <div>
+          <div class="time">${a.next_wake ? this._fmt(a.next_wake.slice(11, 16), false) : "—"}</div>
+          <div class="when">${a.next_wake ? this._when(a.next_wake) : "no sunrise due"}</div>
+        </div>
+        <div class="meta">
+          <div class="status">${this._status(state)}</div>
+          <div class="legend">${a.duration}-min sunrise</div>
+        </div>
       </div>
       ${
         a.phase === "sunrise"
           ? `<div class="bar"><div style="width:${Math.round((a.progress || 0) * 100)}%"></div></div>`
           : ""
       }
-      <div class="week">
+      <div class="week${state.state === "on" ? "" : " off"}">
         ${this._week()
-          .map(
-            (d) => `<button class="day${active.has(d) ? " on" : ""}${d === today ? " today" : ""}${
-              d === next ? " next" : ""
-            }" data-day="${d}" title="${d}">${DAY_LETTER[d]}</button>`,
-          )
+          .map((d) => {
+            const classes = [schedule[d] && "on", d === today && "today", d === next && "next"];
+            return `
+              <div class="col ${classes.filter(Boolean).join(" ")}">
+                <button class="chip" data-day="${d}" title="${d}">${DAY_LETTER[d]}</button>
+                <div class="slot" data-day="${d}" title="Set the time for ${d}">${
+                  schedule[d] ? this._fmt(schedule[d], true) : "–"
+                }</div>
+              </div>`;
+          })
           .join("")}
       </div>
-      <div class="legend">${a.duration}-min sunrise · ${a.profile} profile</div>
       <div class="buttons">
         ${BUTTONS.map(
           (b) => `
@@ -184,8 +256,11 @@ class SunriseAlarmCard extends HTMLElement {
         entity_id: this._config.entity,
       }),
     );
-    for (const chip of this._root.querySelectorAll(".day")) {
+    for (const chip of this._root.querySelectorAll(".chip")) {
       chip.addEventListener("click", () => this._toggleDay(chip.dataset.day));
+    }
+    for (const slot of this._root.querySelectorAll(".slot")) {
+      slot.addEventListener("click", () => this._editTime(slot.dataset.day, slot));
     }
     for (const button of this._root.querySelectorAll(".buttons button")) {
       button.addEventListener("click", () =>
@@ -196,14 +271,63 @@ class SunriseAlarmCard extends HTMLElement {
     }
   }
 
+  /** Turn a day on (reusing another day's time) or off. */
   _toggleDay(day) {
-    const active = new Set(this._state.attributes.days || []);
-    active.has(day) ? active.delete(day) : active.add(day);
-    // Optimistic: reloading the config entry takes a moment to reach the state.
-    this._root.querySelector(`.day[data-day="${day}"]`).classList.toggle("on", active.has(day));
-    this._hass.callService("sunrise_alarm", "set_days", {
+    const schedule = { ...this._schedule() };
+    if (schedule[day]) delete schedule[day];
+    else schedule[day] = Object.values(schedule)[0] || NEW_DAY_TIME;
+    this._save(schedule);
+  }
+
+  /** Open the native time picker over the slot; picking also enables the day. */
+  _editTime(day, slot) {
+    if (!this._picker) {
+      this._picker = document.createElement("input");
+      this._picker.type = "time";
+      this._picker.className = "picker";
+      this._picker.addEventListener("change", () => {
+        const value = this._picker.value;
+        this._close();
+        if (value) {
+          this._save({ ...this._schedule(), [this._edited]: `${value}:00` });
+        }
+      });
+      // Dismissing the picker, or tapping elsewhere, ends the edit.
+      this._picker.addEventListener("cancel", () => this._close());
+      this._picker.addEventListener("blur", () => this._close());
+    }
+    // A time input renders in its element locale, so name one that matches HA's
+    // hour format instead of letting the browser's own setting win.
+    // ponytail: Chromium and Safari honour `lang` here, Firefox uses the OS.
+    this._picker.lang = this._h12() ? "en-US" : "en-GB";
+    this._editing = day;
+    this._edited = day;
+    this._picker.value = (this._schedule()[day] || NEW_DAY_TIME).slice(0, 5);
+    slot.appendChild(this._picker);
+    this._picker.focus();
+    if (this._picker.showPicker) {
+      try {
+        this._picker.showPicker();
+      } catch {
+        /* not allowed here: the focused input still takes a typed time */
+      }
+    }
+  }
+
+  _close() {
+    if (this._editing === null) return;
+    this._editing = null;
+    this._picker.remove();
+    this._render();
+  }
+
+  /** Send the schedule, showing it straight away: the entry reload takes a moment. */
+  _save(schedule) {
+    this._pending = schedule;
+    this._render();
+    this._hass.callService("sunrise_alarm", "set_schedule", {
       entity_id: this._config.entity,
-      days: DAYS.filter((d) => active.has(d)),
+      schedule,
     });
   }
 
@@ -234,7 +358,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "sunrise-alarm-card",
   name: "Sunrise Alarm",
-  description: "Wake-up light: week schedule, countdown, progress and manual buttons.",
+  description: "Wake-up light: a wake time per day, countdown, progress and manual buttons.",
   documentationURL: "https://github.com/sibizaestruch/sunrise-alarm",
   preview: true,
 });
