@@ -13,7 +13,7 @@ from custom_components.sunrise_alarm.sunrise import (
     state_at,
 )
 
-WEEKDAYS = {0, 1, 2, 3, 4}  # Mon-Fri
+WEEKDAYS = dict.fromkeys(range(5), time(7, 30))  # Mon-Fri at 07:30
 # 2026-09-07 is a Monday.
 MON = datetime(2026, 9, 7)
 
@@ -62,7 +62,7 @@ def test_max_brightness_scales_the_curve():
     ],
 )
 def test_active_window(now, expected):
-    window = active_window(now, time(7, 30), WEEKDAYS, timedelta(minutes=30))
+    window = active_window(now, WEEKDAYS, timedelta(minutes=30))
     if expected is None:
         assert window is None
     else:
@@ -72,34 +72,46 @@ def test_active_window(now, expected):
 
 def test_weekend_does_not_trigger():
     saturday = MON + timedelta(days=5, hours=7, minutes=10)
-    assert active_window(saturday, time(7, 30), WEEKDAYS, timedelta(minutes=30)) is None
+    assert active_window(saturday, WEEKDAYS, timedelta(minutes=30)) is None
 
 
 def test_window_crossing_midnight():
     # 00:05 alarm on Monday starts on Sunday at 23:35
     sunday_night = MON - timedelta(minutes=15)
-    window = active_window(sunday_night, time(0, 5), {0}, timedelta(minutes=30))
+    window = active_window(sunday_night, {0: time(0, 5)}, timedelta(minutes=30))
     assert window == (MON - timedelta(minutes=25), MON + timedelta(minutes=5))
 
 
 def test_next_start_same_day_and_next_week():
     duration = timedelta(minutes=30)
-    assert next_start(MON, time(7, 30), WEEKDAYS, duration) == MON.replace(hour=7)
+    assert next_start(MON, WEEKDAYS, duration) == MON.replace(hour=7)
     after = MON.replace(hour=8)
-    assert next_start(after, time(7, 30), WEEKDAYS, duration) == MON.replace(
-        day=8, hour=7
-    )
+    assert next_start(after, WEEKDAYS, duration) == MON.replace(day=8, hour=7)
     friday_evening = MON + timedelta(days=4, hours=20)
-    assert next_start(friday_evening, time(7, 30), WEEKDAYS, duration) == MON.replace(
-        day=14, hour=7
-    )
-    assert next_start(MON, time(7, 30), set(), duration) is None
+    assert next_start(friday_evening, WEEKDAYS, duration) == MON.replace(day=14, hour=7)
+    assert next_start(MON, {}, duration) is None
 
 
 def test_next_start_single_day():
-    only_wednesday = {2}
-    start = next_start(MON, time(7, 30), only_wednesday, timedelta(minutes=30))
+    only_wednesday = {2: time(7, 30)}
+    start = next_start(MON, only_wednesday, timedelta(minutes=30))
     assert start == MON.replace(day=9, hour=7)
+
+
+def test_each_day_keeps_its_own_time():
+    """A late weekend wins over an earlier weekday once the week has moved on."""
+    schedule = {4: time(7, 0), 5: time(9, 30), 6: time(11, 0)}
+    duration = timedelta(minutes=30)
+    friday_noon = MON + timedelta(days=4, hours=12)
+    assert next_start(friday_noon, schedule, duration) == MON.replace(day=12, hour=9)
+    saturday = MON + timedelta(days=5, hours=9, minutes=10)
+    assert active_window(saturday, schedule, duration) == (
+        MON.replace(day=12, hour=9),
+        MON.replace(day=12, hour=9, minute=30),
+    )
+    # Saturday's 09:30 does not arm Friday, which wakes at 07:00.
+    friday_morning = MON.replace(day=11, hour=9, minute=10)
+    assert active_window(friday_morning, schedule, duration) is None
 
 
 def test_human_delta():

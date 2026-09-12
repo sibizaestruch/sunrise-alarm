@@ -14,7 +14,7 @@
           "snooze_minutes": "Snooze time",
           "hold_minutes": "Extra light time after wake-up (0 = leave on)"
         },
-        "description": "Set the lights, wake-up time and sunrise duration."
+        "description": "Set the lights, a wake-up time and the days it runs. Afterwards the card sets a time per day."
       }
     }
   },
@@ -24,15 +24,13 @@
         "title": "Sunrise Alarm",
         "data": {
           "lights": "Lights",
-          "wake_time": "Wake-up time",
-          "days": "Days",
           "duration": "Sunrise duration",
           "max_brightness": "Maximum brightness",
           "profile": "Sunrise profile",
           "snooze_minutes": "Snooze time",
           "hold_minutes": "Extra light time after wake-up (0 = leave on)"
         },
-        "description": "Change the lights, wake-up time and sunrise duration."
+        "description": "Change the lights and the sunrise. The schedule lives on the card."
       }
     }
   },
@@ -63,11 +61,21 @@
     },
     "set_days": {
       "name": "Set days",
-      "description": "Sets the weekdays the alarm runs on.",
+      "description": "Runs the alarm on these weekdays only, keeping each day's time.",
       "fields": {
         "days": {
           "name": "Days",
-          "description": "Weekdays as mon, tue, wed, thu, fri, sat, sun."
+          "description": "Weekdays to run on, as mon, tue, wed, thu, fri, sat, sun."
+        }
+      }
+    },
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Replaces the schedule with a wake-up time per weekday.",
+      "fields": {
+        "schedule": {
+          "name": "Schedule",
+          "description": "Wake-up time per weekday: keys mon, tue, wed, thu, fri, sat, sun, each with a time like 07:00:00. Days left out have no alarm."
         }
       }
     }

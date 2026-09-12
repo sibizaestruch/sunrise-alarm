@@ -15,9 +15,11 @@ from .const import (
     ATTR_DAYS,
     ATTR_DURATION,
     ATTR_MINUTES,
+    ATTR_SCHEDULE,
     CONF_ENABLED,
     DOMAIN,
     SERVICE_SET_DAYS,
+    SERVICE_SET_SCHEDULE,
     SERVICE_SNOOZE,
     SERVICE_START,
     SERVICE_STOP,
@@ -45,6 +47,11 @@ async def async_setup_entry(
         SERVICE_SET_DAYS,
         {vol.Required(ATTR_DAYS): vol.All(cv.ensure_list, [vol.In(WEEKDAYS)])},
         "async_set_days",
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_SCHEDULE,
+        {vol.Required(ATTR_SCHEDULE): {vol.In(WEEKDAYS): cv.time}},
+        "async_set_schedule",
     )
     async_add_entities([SunriseAlarmSwitch(hass.data[DOMAIN][entry.entry_id])])
 
@@ -103,3 +110,9 @@ class SunriseAlarmSwitch(SwitchEntity):
     async def async_set_days(self, days: list[str]) -> None:
         """Service: set the weekdays the alarm runs on."""
         await self._alarm.async_set_days(days)
+
+    async def async_set_schedule(self, schedule: dict) -> None:
+        """Service: replace the whole schedule with a wake time per weekday."""
+        await self._alarm.async_set_schedule(
+            {day: at.isoformat() for day, at in schedule.items()}
+        )

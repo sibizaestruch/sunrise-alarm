@@ -6,8 +6,9 @@ DOMAIN = "sunrise_alarm"
 
 CONF_NAME = "name"
 CONF_LIGHTS = "lights"
-CONF_WAKE_TIME = "wake_time"
-CONF_DAYS = "days"
+CONF_WAKE_TIME = "wake_time"  # setup form only; expanded into CONF_SCHEDULE
+CONF_DAYS = "days"  # setup form only; expanded into CONF_SCHEDULE
+CONF_SCHEDULE = "schedule"
 CONF_DURATION = "duration"
 CONF_MAX_BRIGHTNESS = "max_brightness"
 CONF_PROFILE = "profile"
@@ -28,10 +29,12 @@ SERVICE_START = "start"
 SERVICE_STOP = "stop"
 SERVICE_SNOOZE = "snooze"
 SERVICE_SET_DAYS = "set_days"
+SERVICE_SET_SCHEDULE = "set_schedule"
 
 ATTR_DURATION = "duration"
 ATTR_MINUTES = "minutes"
 ATTR_DAYS = "days"
+ATTR_SCHEDULE = "schedule"
 
 UPDATE_INTERVAL = 5  # seconds between light updates during a sunrise
 DEFAULT_SNOOZE_MINUTES = 9

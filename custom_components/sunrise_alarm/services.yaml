@@ -46,3 +46,15 @@ set_days:
         select:
           multiple: true
           options: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+set_schedule:
+  target:
+    entity:
+      integration: sunrise_alarm
+      domain: switch
+  fields:
+    schedule:
+      required: true
+      example: { mon: "07:00:00", sat: "09:30:00" }
+      selector:
+        object:

@@ -21,6 +21,7 @@ from .const import (
     CONF_MAX_BRIGHTNESS,
     CONF_NAME,
     CONF_PROFILE,
+    CONF_SCHEDULE,
     CONF_SNOOZE_MINUTES,
     CONF_WAKE_TIME,
     DEFAULT_DAYS,
@@ -54,34 +55,42 @@ _DAY_LABELS = {
 
 
 def _schema(defaults: dict, with_name: bool) -> vol.Schema:
-    """Build the (single) configuration form."""
+    """Build the configuration form.
+
+    `with_name` marks the initial setup, which is also the only place the
+    schedule is asked for: one wake time on a set of days, expanded on save.
+    Afterwards the card owns the schedule, a time per day.
+    """
     fields: dict = {}
     if with_name:
         fields[
             vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME))
         ] = selector.TextSelector()
-    fields.update(
-        {
-            vol.Required(
-                CONF_LIGHTS, default=defaults.get(CONF_LIGHTS, [])
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="light", multiple=True)
-            ),
+    fields[vol.Required(CONF_LIGHTS, default=defaults.get(CONF_LIGHTS, []))] = (
+        selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="light", multiple=True)
+        )
+    )
+    if with_name:
+        fields[
             vol.Required(
                 CONF_WAKE_TIME, default=defaults.get(CONF_WAKE_TIME, DEFAULT_WAKE_TIME)
-            ): selector.TimeSelector(),
-            vol.Required(
-                CONF_DAYS, default=defaults.get(CONF_DAYS, DEFAULT_DAYS)
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=day, label=_DAY_LABELS[day])
-                        for day in WEEKDAYS
-                    ],
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
-            ),
+            )
+        ] = selector.TimeSelector()
+        fields[
+            vol.Required(CONF_DAYS, default=defaults.get(CONF_DAYS, DEFAULT_DAYS))
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value=day, label=_DAY_LABELS[day])
+                    for day in WEEKDAYS
+                ],
+                multiple=True,
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        )
+    fields.update(
+        {
             vol.Required(
                 CONF_DURATION, default=defaults.get(CONF_DURATION, DEFAULT_DURATION)
             ): selector.NumberSelector(
@@ -138,7 +147,10 @@ class SunriseAlarmConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict | None = None) -> ConfigFlowResult:
         """Single-step setup."""
         if user_input is not None:
-            return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
+            data = {**user_input}
+            wake = data.pop(CONF_WAKE_TIME)
+            data[CONF_SCHEDULE] = {day: wake for day in data.pop(CONF_DAYS)}
+            return self.async_create_entry(title=data[CONF_NAME], data=data)
         return self.async_show_form(step_id="user", data_schema=_schema({}, True))
 
     @staticmethod
@@ -155,8 +167,9 @@ class SunriseAlarmOptionsFlow(OptionsFlow):
         """Reconfigure the alarm."""
         current = {**self.config_entry.data, **self.config_entry.options}
         if user_input is not None:
-            # keep the armed state, it lives in the options too
-            return self.async_create_entry(
-                data={**user_input, CONF_ENABLED: current.get(CONF_ENABLED, True)}
-            )
+            # The form asks for neither: keep what the switch and the card own.
+            keep = {CONF_ENABLED: current.get(CONF_ENABLED, True)}
+            if CONF_SCHEDULE in current:
+                keep[CONF_SCHEDULE] = current[CONF_SCHEDULE]
+            return self.async_create_entry(data={**user_input, **keep})
         return self.async_show_form(step_id="init", data_schema=_schema(current, False))
