@@ -2,7 +2,7 @@
 
 # Sunrise Alarm
 
-[![hacs](https://img.shields.io/badge/HACS-custom-41bdf5.svg)](https://hacs.xyz)
+[![hacs](https://img.shields.io/badge/HACS-default-41bdf5.svg)](https://hacs.xyz)
 
 Home Assistant custom integration that turns any `light` entities into a
 Philips-style wake-up light: a gradual sunrise of brightness and colour that
@@ -21,9 +21,9 @@ finishes at your wake-up time, at a time you set per day of the week.
 
 ### HACS
 
-HACS → ⋮ → **Custom repositories** → add
-`https://github.com/sibizaestruch/sunrise-alarm` as an **Integration**, then
-download *Sunrise Alarm* and restart Home Assistant.
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sibizaestruch&repository=sunrise-alarm&category=integration)
+
+Or search HACS for *Sunrise Alarm*. Download it and restart Home Assistant.
 
 ### By hand
 
